@@ -83,7 +83,7 @@ function App() {
 
     <input
   type="file"
-  accept=".pdf"
+  accept=".pdf,.jpg,.jpeg,.png"
   onChange={handleFileChange}
 />
 
