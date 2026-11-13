@@ -1,9 +1,19 @@
-import { useState } from 'react'
+
+
+import { useState, useEffect } from 'react'
 import './App.css'
 
 function App() {
 
   const [selectedFile, setSelectedFile] = useState(null)
+  const [backendStatus, setBackendStatus] = useState("Connecting...")
+
+  useEffect(() => {
+    fetch("http://localhost:8080/")
+      .then(response => response.text())
+      .then(data => setBackendStatus(data))
+      .catch(() => setBackendStatus("Backend connection failed"))
+  }, [])
 
   function handleFileChange(event) {
     const file = event.target.files[0]
@@ -21,11 +31,58 @@ function App() {
       return
     }
 
+    const maxSize = 110 * 1024 * 1024
+
+    if (file.size > maxSize) {
+      alert("File size must be less than 110 MB!")
+      setSelectedFile(null)
+      event.target.value = ""
+      return
+    }
+
     setSelectedFile(file)
+  }
+
+  function removeFile() {
+    setSelectedFile(null)
+    document.getElementById("pdf-upload").value = ""
+  }
+
+  async function handleUpload() {
+
+    if (!selectedFile) {
+      alert("Please select a PDF first!")
+      return
+    }
+
+    const formData = new FormData()
+    formData.append("file", selectedFile)
+
+    try {
+      const response = await fetch("http://localhost:8080/api/upload", {
+        method: "POST",
+        body: formData
+      })
+
+      const data = await response.text()
+      alert(data)
+
+    } catch (error) {
+      alert("PDF upload failed!")
+    }
+  }
+
+  function scrollToUpload() {
+    document.getElementById('upload').scrollIntoView({
+      behavior: 'smooth'
+    })
   }
 
   return (
     <>
+      <div className="backend-status">
+        Backend: {backendStatus}
+      </div>
 
       {/* NAVBAR */}
 
@@ -37,18 +94,20 @@ function App() {
           <a href="#features">Features</a>
           <a href="#upload">Upload Paper</a>
           <a href="#about">About</a>
-          <button onClick={() => document.getElementById('upload').scrollIntoView({ behavior: 'smooth' })}>
+
+          <button onClick={scrollToUpload}>
             Get Started
           </button>
         </div>
       </nav>
 
-
       {/* HERO SECTION */}
 
       <main>
 
-        <span className="hero-tag">AI-Powered Research Intelligence</span>
+        <span className="hero-tag">
+          AI-Powered Research Intelligence
+        </span>
 
         <h1>
           Understand Research Papers
@@ -61,12 +120,11 @@ function App() {
           Discover insights beyond traditional reading.
         </p>
 
-        <button onClick={() => document.getElementById('upload').scrollIntoView({ behavior: 'smooth' })}>
+        <button onClick={scrollToUpload}>
           Explore Research →
         </button>
 
       </main>
-
 
       {/* FEATURES SECTION */}
 
@@ -137,9 +195,6 @@ function App() {
 
           <div className="empty-card"></div>
 
-
-    
-
           <div className="feature-card">
             <div className="feature-icon">🕸️</div>
             <h3>Research Knowledge Map</h3>
@@ -152,7 +207,6 @@ function App() {
         </div>
 
       </section>
-
 
       {/* PDF UPLOAD SECTION */}
 
@@ -176,25 +230,52 @@ function App() {
           </p>
 
           <input
+            id="pdf-upload"
             type="file"
-            accept=".pdf"
+            accept=".pdf,application/pdf"
             onChange={handleFileChange}
           />
 
           {selectedFile && (
-            <p className="selected-file">
-              Selected File: {selectedFile.name}
-            </p>
+            <div>
+
+              <p className="selected-file">
+                Selected File: {selectedFile.name}
+              </p>
+
+              <p>
+                File Size: {
+                  (selectedFile.size / (1024 * 1024)).toFixed(2)
+                } MB
+              </p>
+
+              <button
+                onClick={() => {
+                  const pdfUrl = URL.createObjectURL(selectedFile)
+                  window.open(pdfUrl, "_blank")
+                }}
+              >
+                Preview PDF 👁
+              </button>
+
+              <button onClick={removeFile}>
+                Remove PDF ✕
+              </button>
+
+              <button onClick={handleUpload}>
+                Upload PDF ↑
+              </button>
+
+            </div>
           )}
 
           <p className="upload-note">
-            Only PDF files are supported.
+            Only PDF files up to 110 MB are supported.
           </p>
 
         </div>
 
       </section>
-
 
       {/* ABOUT SECTION */}
 
@@ -211,13 +292,18 @@ function App() {
 
       </section>
 
-
       {/* FOOTER */}
 
       <footer>
         <h2>ResearchLens</h2>
-        <p>Making Research Smarter with Artificial Intelligence.</p>
-        <p>© 2026 ResearchLens. All Rights Reserved.</p>
+
+        <p>
+          Making Research Smarter with Artificial Intelligence.
+        </p>
+
+        <p>
+          © 2026 ResearchLens. All Rights Reserved.
+        </p>
       </footer>
 
     </>
