@@ -403,3 +403,45 @@ section {
 .upload-box button {
   margin: 8px;
 }
+
+
+/* EXTRACTED TEXT SECTION */
+
+.extracted-section {
+  padding: 70px 8%;
+  background: #faf8ff;
+  text-align: center;
+}
+
+.extracted-section h2 {
+  font-size: 32px;
+  margin-bottom: 12px;
+  color: var(--text-h);
+}
+
+.extracted-section > p {
+  color: var(--text);
+  margin-bottom: 30px;
+}
+
+.extracted-text-box {
+  max-width: 1100px;
+  margin: auto;
+  padding: 30px;
+  background: white;
+  border: 1px solid #e5e4e7;
+  border-radius: 14px;
+  text-align: left;
+  max-height: 500px;
+  overflow-y: auto;
+  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.05);
+}
+
+.extracted-text-box pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.8;
+  color: #393342;
+}

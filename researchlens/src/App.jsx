@@ -1,5 +1,4 @@
 
-
 import { useState, useEffect } from 'react'
 import './App.css'
 
@@ -7,6 +6,8 @@ function App() {
 
   const [selectedFile, setSelectedFile] = useState(null)
   const [backendStatus, setBackendStatus] = useState("Connecting...")
+  const [extractedText, setExtractedText] = useState("")
+  const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
     fetch("http://localhost:8080/")
@@ -41,10 +42,12 @@ function App() {
     }
 
     setSelectedFile(file)
+    setExtractedText("")
   }
 
   function removeFile() {
     setSelectedFile(null)
+    setExtractedText("")
     document.getElementById("pdf-upload").value = ""
   }
 
@@ -58,6 +61,9 @@ function App() {
     const formData = new FormData()
     formData.append("file", selectedFile)
 
+    setUploading(true)
+    setExtractedText("")
+
     try {
       const response = await fetch("http://localhost:8080/api/upload", {
         method: "POST",
@@ -65,10 +71,23 @@ function App() {
       })
 
       const data = await response.text()
-      alert(data)
+
+      if (!response.ok) {
+        throw new Error(data || "PDF upload failed!")
+      }
+
+      setExtractedText(data)
+
+      setTimeout(() => {
+        document.getElementById("extracted-text")?.scrollIntoView({
+          behavior: "smooth"
+        })
+      }, 100)
 
     } catch (error) {
-      alert("PDF upload failed!")
+      alert(error.message || "PDF upload failed!")
+    } finally {
+      setUploading(false)
     }
   }
 
@@ -262,8 +281,11 @@ function App() {
                 Remove PDF ✕
               </button>
 
-              <button onClick={handleUpload}>
-                Upload PDF ↑
+              <button
+                onClick={handleUpload}
+                disabled={uploading}
+              >
+                {uploading ? "Extracting Text..." : "Upload PDF ↑"}
               </button>
 
             </div>
@@ -276,6 +298,26 @@ function App() {
         </div>
 
       </section>
+
+      {/* EXTRACTED TEXT SECTION */}
+
+      {extractedText && (
+
+        <section className="extracted-section" id="extracted-text">
+
+          <h2>Extracted PDF Text</h2>
+
+          <p>
+            Your research paper text has been extracted successfully.
+          </p>
+
+          <div className="extracted-text-box">
+            <pre>{extractedText}</pre>
+          </div>
+
+        </section>
+
+      )}
 
       {/* ABOUT SECTION */}
 
