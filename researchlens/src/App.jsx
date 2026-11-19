@@ -1,21 +1,41 @@
-
 import { useState, useEffect } from 'react'
 import './App.css'
 
 function App() {
-
   const [selectedFile, setSelectedFile] = useState(null)
   const [backendStatus, setBackendStatus] = useState("Connecting...")
   const [extractedText, setExtractedText] = useState("")
   const [uploading, setUploading] = useState(false)
+  const [papers, setPapers] = useState([])
 
+  // CHECK BACKEND & FETCH PAPERS
   useEffect(() => {
     fetch("http://localhost:8080/")
       .then(response => response.text())
       .then(data => setBackendStatus(data))
       .catch(() => setBackendStatus("Backend connection failed"))
+
+    fetchPapers()
   }, [])
 
+  // FETCH PAPERS FROM ORACLE
+  async function fetchPapers() {
+    try {
+      const response = await fetch("http://localhost:8080/api/papers")
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch papers")
+      }
+
+      const data = await response.json()
+      setPapers(data)
+
+    } catch (error) {
+      console.log("Error fetching papers:", error)
+    }
+  }
+
+  // SELECT FILE
   function handleFileChange(event) {
     const file = event.target.files[0]
 
@@ -45,16 +65,17 @@ function App() {
     setExtractedText("")
   }
 
+  // REMOVE SELECTED FILE
   function removeFile() {
     setSelectedFile(null)
     setExtractedText("")
     document.getElementById("pdf-upload").value = ""
   }
 
+  // UPLOAD FILE TO BACKEND
   async function handleUpload() {
-
     if (!selectedFile) {
-      alert("Please select a PDF first!")
+      alert("Please select a file first!")
       return
     }
 
@@ -73,10 +94,13 @@ function App() {
       const data = await response.text()
 
       if (!response.ok) {
-        throw new Error(data || "PDF upload failed!")
+        throw new Error(data || "File upload failed!")
       }
 
       setExtractedText(data)
+
+      // REFRESH UPLOADED PAPERS LIST
+      await fetchPapers()
 
       setTimeout(() => {
         document.getElementById("extracted-text")?.scrollIntoView({
@@ -85,12 +109,14 @@ function App() {
       }, 100)
 
     } catch (error) {
-      alert(error.message || "PDF upload failed!")
+      alert(error.message || "File upload failed!")
+
     } finally {
       setUploading(false)
     }
   }
 
+  // SCROLL TO UPLOAD SECTION
   function scrollToUpload() {
     document.getElementById('upload').scrollIntoView({
       behavior: 'smooth'
@@ -104,7 +130,6 @@ function App() {
       </div>
 
       {/* NAVBAR */}
-
       <nav>
         <h2>ResearchLens</h2>
 
@@ -121,9 +146,7 @@ function App() {
       </nav>
 
       {/* HERO SECTION */}
-
       <main>
-
         <span className="hero-tag">
           AI-Powered Research Intelligence
         </span>
@@ -142,13 +165,10 @@ function App() {
         <button onClick={scrollToUpload}>
           Explore Research →
         </button>
-
       </main>
 
       {/* FEATURES SECTION */}
-
       <section className="features" id="features">
-
         <h2>What You Can Do With ResearchLens</h2>
 
         <p className="features-subtitle">
@@ -224,28 +244,24 @@ function App() {
           </div>
 
         </div>
-
       </section>
 
-      {/* PDF UPLOAD SECTION */}
-
+      {/* FILE UPLOAD SECTION */}
       <section className="upload-section" id="upload">
-
         <h2>Upload Your Research Paper</h2>
 
         <p>
-          Upload a PDF and start exploring your research paper
+          Upload a file and start exploring your research paper
           with Artificial Intelligence.
         </p>
 
         <div className="upload-box">
-
           <div className="upload-icon">📄</div>
 
           <h3>Select Your Research Paper</h3>
 
           <p className="upload-description">
-            Choose a PDF file from your device.
+            Choose a file from your device.
           </p>
 
           <input
@@ -257,7 +273,6 @@ function App() {
 
           {selectedFile && (
             <div>
-
               <p className="selected-file">
                 Selected File: {selectedFile.name}
               </p>
@@ -274,37 +289,31 @@ function App() {
                   window.open(pdfUrl, "_blank")
                 }}
               >
-                Preview PDF 👁
+                Preview File 👁
               </button>
 
               <button onClick={removeFile}>
-                Remove PDF ✕
+                Remove File ✕
               </button>
 
               <button
                 onClick={handleUpload}
                 disabled={uploading}
               >
-                {uploading ? "Extracting Text..." : "Upload PDF ↑"}
+                {uploading ? "Extracting Text..." : "Upload File ↑"}
               </button>
-
             </div>
           )}
 
           <p className="upload-note">
-            Only PDF files up to 110 MB are supported.
+            Only PDF files up to 110 MB are allowed.
           </p>
-
         </div>
-
       </section>
 
       {/* EXTRACTED TEXT SECTION */}
-
       {extractedText && (
-
         <section className="extracted-section" id="extracted-text">
-
           <h2>Extracted PDF Text</h2>
 
           <p>
@@ -314,15 +323,40 @@ function App() {
           <div className="extracted-text-box">
             <pre>{extractedText}</pre>
           </div>
-
         </section>
-
       )}
 
+      {/* PREVIOUSLY UPLOADED PAPERS */}
+      <section className="papers-section">
+        <h2>Previously Uploaded Research Papers</h2>
+
+        <p>
+          Your uploaded research papers are stored in Oracle Database.
+        </p>
+
+        <div className="papers-container">
+          {papers.length === 0 ? (
+            <p>No research papers uploaded yet.</p>
+          ) : (
+            papers.map((paper) => (
+              <div className="paper-card" key={paper.ID}>
+                <h3>
+                  📄 {paper.FILE_NAME}
+                </h3>
+
+                <p>
+                  Uploaded At: {
+                    new Date(paper.UPLOADED_AT).toLocaleString()
+                  }
+                </p>
+              </div>
+            ))
+          )}
+        </div>
+      </section>
+
       {/* ABOUT SECTION */}
-
       <section className="about-section" id="about">
-
         <h2>About ResearchLens</h2>
 
         <p>
@@ -331,11 +365,9 @@ function App() {
           understand, analyze and discover insights from
           academic research papers.
         </p>
-
       </section>
 
       {/* FOOTER */}
-
       <footer>
         <h2>ResearchLens</h2>
 
@@ -347,7 +379,6 @@ function App() {
           © 2026 ResearchLens. All Rights Reserved.
         </p>
       </footer>
-
     </>
   )
 }

@@ -8,7 +8,6 @@ import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 
-import java.io.IOException;
 import java.io.StringReader;
 import java.sql.PreparedStatement;
 import java.util.List;
@@ -30,17 +29,40 @@ public class PdfController {
     public String upload(@RequestParam("file") MultipartFile file) {
 
         try {
-            // Read uploaded PDF
+
+            // Check empty file
+            if (file.isEmpty()) {
+                return "Error: Please select a file!";
+            }
+
+            // Check PDF extension
+            String fileName = file.getOriginalFilename();
+
+            if (fileName == null ||
+                !fileName.toLowerCase().endsWith(".pdf")) {
+                return "Error: Only PDF files are allowed!";
+            }
+
+            // Check file size (110 MB)
+            if (file.getSize() > 110L * 1024 * 1024) {
+                return "Error: File size must be less than 110 MB!";
+            }
+
+            // Read uploaded file
             byte[] pdfBytes = file.getBytes();
 
-            // Extract text from PDF
-            PDDocument document = Loader.loadPDF(pdfBytes);
+            // Validate actual PDF content and extract text
+            String extractedText;
 
-            PDFTextStripper pdfStripper = new PDFTextStripper();
+            try (PDDocument document = Loader.loadPDF(pdfBytes)) {
 
-            String extractedText = pdfStripper.getText(document);
+                PDFTextStripper pdfStripper = new PDFTextStripper();
 
-            document.close();
+                extractedText = pdfStripper.getText(document);
+
+            } catch (Exception e) {
+                return "Error: Invalid or corrupted PDF file!";
+            }
 
             // Store PDF details in Oracle Database
             String sql = "INSERT INTO research_papers (file_name, extracted_text) VALUES (?, ?)";
@@ -49,7 +71,7 @@ public class PdfController {
 
                 PreparedStatement ps = connection.prepareStatement(sql);
 
-                ps.setString(1, file.getOriginalFilename());
+                ps.setString(1, fileName);
 
                 ps.setCharacterStream(
                     2,
@@ -70,7 +92,6 @@ public class PdfController {
         }
     }
 
-
     // 2. FETCH UPLOADED PAPERS
     @GetMapping("/papers")
     public List<Map<String, Object>> getPapers() {
@@ -79,5 +100,4 @@ public class PdfController {
 
         return jdbcTemplate.queryForList(sql);
     }
-
 }
